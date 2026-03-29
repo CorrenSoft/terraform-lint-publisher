@@ -8,24 +8,33 @@ permissions:
   contents: read
 
 jobs:
-  workflow-lint:
-    name: actionlint (workflows)
+  action-lint:
+    name: actionlint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install actionlint
-        run: |
-          set -euo pipefail
-          LATEST=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest | jq -r .tag_name)
-          curl -sL https://github.com/rhysd/actionlint/releases/download/${LATEST}/actionlint_${LATEST#v}_linux_amd64.tar.gz | tar -xz -C /usr/local/bin actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
       - name: Run actionlint
-        run: actionlint -color
+        run: ~/go/bin/actionlint -color
+  
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              document-start: disable
+              line-length: disable
 
   ps-lint:
     name: PSScriptAnalyzer (PowerShell)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run PSScriptAnalyzer
         shell: pwsh
         run: |

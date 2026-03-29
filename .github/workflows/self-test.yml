@@ -2,6 +2,11 @@
 name: Self Test
 
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/**'
+      - 'action.yml'
   workflow_dispatch:
 
 jobs:
@@ -16,4 +21,4 @@ jobs:
       - uses: ./. 
         with:
           minimum-severity: warning
-          working_directory: ./tests/terraform/basic
+          working-directory: ./tests/terraform/basic
