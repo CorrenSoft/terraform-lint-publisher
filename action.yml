@@ -1,17 +1,82 @@
-name: Example Composite Action
-description: A starter composite action template
 
+name: Terraform Lint Publisher
+description: Run TFLint with opinionated defaults and publish results to GitHub (summary, PR comment, check run).
+author: CorrenSoft
+branding:
+  icon: check-circle
+  color: blue
 
 inputs:
-  example-input:
-    description: "Example input"
+  working_directory:
+    description: Directory to run TFLint in
+    required: true
+  recursive:
+    description: Run TFLint recursively
     required: false
-    default: "hello"
+    default: 'true'
+  minimum_severity:
+    description: Minimum severity considered a failure (warning|error)
+    required: false
+    default: error
+  fail_on_issues:
+    description: Fail the job if lint state is failure
+    required: false
+    default: 'true'
+  fail_on_publish:
+    description: Fail the job if publishing fails
+    required: false
+    default: 'true'
+  publish_summary:
+    description: When to publish Job Summary (always|never|on-findings)
+    required: false
+    default: on-findings
+  publish_pr:
+    description: When to publish PR comment (always|never|on-findings)
+    required: false
+    default: never
+  publish_check_run:
+    description: When to publish Check Run (always|never|on-findings)
+    required: false
+    default: never
+
+outputs:
+  state:
+    description: Final logical state (success|failure)
+  total:
+    description: Total issues found
+  errors:
+    description: Error count
+  warnings:
+    description: Warning count
 
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Print input
-      shell: bash
+    - name: Setup TFLint
+      uses: terraform-linters/setup-tflint@v4
+
+    - name: Run TFLint and build report
+      id: execute
+      shell: pwsh
       run: |
-        echo "Input: ${{ inputs.example-input }}"
+        & "$env:GITHUB_ACTION_PATH/src/execute.ps1" `
+          -MinimumSeverity "${{ inputs.minimum_severity }}" `
+          -Recursive "${{ inputs.recursive }}" `
+          -WorkingDirectory "${{ inputs.working_directory }}" `
+
+    - name: Publish PR
+      uses: CorrenSoft/github-content-publisher@v0.1.0
+      with:
+        channel: pull-request
+        mode: replace
+        body: steps.execute.outputs.pr_message
+
+    - name: Finalize
+      shell: pwsh
+      run: |
+        if (steps.execute.outputs.failureMessage) {
+          WriteError steps.execute.outputs.failureMessage
+        }
+        if ('${{ inputs.fail_on_issues }}' -eq 'true' -and '${{ steps.execute.outputs.state }}' -eq 'failure') {
+          WriteError "Lint errors found." 
+        }
