@@ -1,4 +1,3 @@
-
 name: Terraform Lint Publisher
 description: Run TFLint with opinionated defaults and publish results to GitHub (summary, PR comment, check run).
 author: CorrenSoft
@@ -65,7 +64,7 @@ runs:
           -ReportCheckRun "${{ inputs.publish-check-run }}" `
           -ReportPullRequest "${{ inputs.publish-pr }}" `
           -ReportSummary "${{ inputs.publish-summary }}" `
-          -WorkingDirectory "${{ inputs.working-directory }}" `
+          -WorkingDirectory "$HOME/${{ inputs.working-directory }}" `
 
     - name: Publish Check Run
       uses: CorrenSoft/github-content-publisher@v0.1.0
@@ -101,5 +100,5 @@ runs:
           WriteError steps.execute.outputs.failureMessage
         }
         if ('${{ inputs.fail-on-issues }}' -eq 'true' -and '${{ steps.execute.outputs.state }}' -eq 'failure') {
-          WriteError "Lint errors found." 
+          WriteError "Lint errors found."
         }

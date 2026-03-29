@@ -8,17 +8,22 @@ param(
   [string]$WorkingDirectory
 )
 
+Write-Host "::group:: Execution Logs"
 $reportDir = Join-Path $PWD 'tflint-reports'
 $report = Join-Path $reportDir 'report.xml'
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
 
 try {
+  Write-Host "Initializing"
   tflint --init
-  $rec = if ($Recursive -eq 'true') { '--recursive' } else { '' }
+  $flags = if ($Recursive -eq 'true') { '--recursive ' } else { '' }
 
-  tflint --chdir "$WorkingDirectory" $rec -f junit --minimum-failure-severity $MinimumSeverity > $report
+  Write-Host "Executing tf lint on $WorkingDirectory"
+  tflint --chdir "$WorkingDirectory" $flags -f junit --minimum-failure-severity $MinimumSeverity > $report
 
   [xml]$xml = Get-Content $report
+  Write-Host "Report: 
+  $xml"
   $suite = $xml.testsuites.testsuite
   $total = [int]$suite.tests
   $errors = [int]$suite.failures
@@ -26,6 +31,7 @@ try {
   $state = if ($errors -gt 0) { 'failure' } else { 'success' }
 }
 catch {
+  Write-Host "tflint failure: $_"
   # If tflint crash, close early.
   $failureMessage = "TFLint has failed on execution: $_"
   "failureMessage=$failureMessage" >> $env:GITHUB_OUTPUT
@@ -46,6 +52,7 @@ Warnings: $warnings
 </details>"
 } 
 
+Write-Host "Messages:"
 switch ($ReportCheckRun) {
   'always' { 
     if ($somethingToReport) {
@@ -62,6 +69,7 @@ switch ($ReportCheckRun) {
     $checkMessage = ""
   }
 }
+Write-Host $checkMessage
 
 switch ($ReportPullRequest) {
   'always' { 
@@ -74,8 +82,9 @@ switch ($ReportPullRequest) {
     $prMessage = ""
   }
 }
+Write-Host $prMessage
 
-switch ($ReportPullRequest) {
+switch ($ReportSummary) {
   'always' { 
     $summaryMessage = $message
   }
@@ -86,6 +95,7 @@ switch ($ReportPullRequest) {
     $summaryMessage = ""
   }
 }
+Write-Host $summaryMessage
 
 # outputs
 "state=$state" >> $env:GITHUB_OUTPUT
@@ -96,3 +106,4 @@ switch ($ReportPullRequest) {
 "summary_message<<EOF`n$summaryMessage`nEOF" >> $env:GITHUB_OUTPUT
 "pr_message<<EOF`n$prMessage`nEOF" >> $env:GITHUB_OUTPUT
 "check_message=$checkMessage" >> $env:GITHUB_OUTPUT
+Write-Host "::endgroup::"
