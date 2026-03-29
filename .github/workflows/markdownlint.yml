@@ -1,0 +1,13 @@
+name: Lint - markdown
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  markdownlint:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: davidanson/markdownlint-cli2-action@v23
