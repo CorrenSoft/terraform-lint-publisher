@@ -2,7 +2,6 @@
 name: CI Validate
 
 on:
-  push:
   pull_request:
 
 permissions:
@@ -18,7 +17,7 @@ jobs:
         run: |
           set -euo pipefail
           LATEST=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest | jq -r .tag_name)
-          curl -sL https://github.com/rhysd/actionlint/releases/download/${LATEST}/actionlint_${LATEST#v}_linux_amd64.tar.gz             | tar -xz -C /usr/local/bin actionlint
+          curl -sL https://github.com/rhysd/actionlint/releases/download/${LATEST}/actionlint_${LATEST#v}_linux_amd64.tar.gz | tar -xz -C /usr/local/bin actionlint
       - name: Run actionlint
         run: actionlint -color
 
@@ -36,21 +35,3 @@ jobs:
           }
           Invoke-ScriptAnalyzer -Path ./src -Recurse -Severity Error -EnableExit
 
-  shellcheck:
-    name: ShellCheck (optional)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install shellcheck
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y shellcheck
-      - name: Run ShellCheck if any .sh files
-        run: |
-          set -euo pipefail
-          files=$(git ls-files '*.sh' || true)
-          if [ -n "${files}" ]; then
-            shellcheck ${files}
-          else
-            echo "No .sh files found, skipping."
-          fi

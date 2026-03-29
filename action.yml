@@ -7,34 +7,34 @@ branding:
   color: blue
 
 inputs:
-  working_directory:
+  working-directory:
     description: Directory to run TFLint in
     required: true
   recursive:
     description: Run TFLint recursively
     required: false
-    default: 'true'
-  minimum_severity:
+    default: true
+  minimum-severity:
     description: Minimum severity considered a failure (warning|error)
     required: false
     default: error
-  fail_on_issues:
+  fail-on-issues:
     description: Fail the job if lint state is failure
     required: false
-    default: 'true'
-  fail_on_publish:
+    default: true
+  fail-on-publish:
     description: Fail the job if publishing fails
     required: false
-    default: 'true'
-  publish_summary:
+    default: false
+  publish-summary:
     description: When to publish Job Summary (always|never|on-findings)
     required: false
     default: on-findings
-  publish_pr:
+  publish-pr:
     description: When to publish PR comment (always|never|on-findings)
     required: false
     default: never
-  publish_check_run:
+  publish-check-run:
     description: When to publish Check Run (always|never|on-findings)
     required: false
     default: never
@@ -60,16 +60,39 @@ runs:
       shell: pwsh
       run: |
         & "$env:GITHUB_ACTION_PATH/src/execute.ps1" `
-          -MinimumSeverity "${{ inputs.minimum_severity }}" `
+          -MinimumSeverity "${{ inputs.minimum-severity }}" `
           -Recursive "${{ inputs.recursive }}" `
-          -WorkingDirectory "${{ inputs.working_directory }}" `
+          -ReportCheckRun "${{ inputs.publish-check-run }}" `
+          -ReportPullRequest "${{ inputs.publish-pr }}" `
+          -ReportSummary "${{ inputs.publish-summary }}" `
+          -WorkingDirectory "${{ inputs.working-directory }}" `
 
-    - name: Publish PR
+    - name: Publish Check Run
       uses: CorrenSoft/github-content-publisher@v0.1.0
+      if: steps.execute.outputs.checkMessage != ''
       with:
-        channel: pull-request
+        channel: summary
+        body: steps.execute.outputs.checkMessage
         mode: replace
-        body: steps.execute.outputs.pr_message
+        fail-on-error: ${{ inputs.fail-on-fail-on-publish }}
+
+    - name: Publish Pull Request
+      uses: CorrenSoft/github-content-publisher@v0.1.0
+      if: steps.execute.outputs.pr-message != '' && github.event-name == 'pull_request'
+      with:
+        body: steps.execute.outputs.pr-message
+        channel: pull-request
+        fail-on-error: ${{ inputs.fail-on-fail-on-publish }}
+        mode: replace
+
+    - name: Publish Summary
+      uses: CorrenSoft/github-content-publisher@v0.1.0
+      if: steps.execute.outputs.summaryMessage != ''
+      with:
+        body: steps.execute.outputs.summaryMessage
+        channel: summary
+        fail-on-error: ${{ inputs.fail-on-fail-on-publish }}
+        mode: replace
 
     - name: Finalize
       shell: pwsh
@@ -77,6 +100,6 @@ runs:
         if (steps.execute.outputs.failureMessage) {
           WriteError steps.execute.outputs.failureMessage
         }
-        if ('${{ inputs.fail_on_issues }}' -eq 'true' -and '${{ steps.execute.outputs.state }}' -eq 'failure') {
+        if ('${{ inputs.fail-on-issues }}' -eq 'true' -and '${{ steps.execute.outputs.state }}' -eq 'failure') {
           WriteError "Lint errors found." 
         }
