@@ -1,32 +1,39 @@
-
 name: CI Validate
 
 on:
-  push:
   pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  workflow-lint:
-    name: actionlint (workflows)
+  action-lint:
+    name: actionlint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install actionlint
-        run: |
-          set -euo pipefail
-          LATEST=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest | jq -r .tag_name)
-          curl -sL https://github.com/rhysd/actionlint/releases/download/${LATEST}/actionlint_${LATEST#v}_linux_amd64.tar.gz             | tar -xz -C /usr/local/bin actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
       - name: Run actionlint
-        run: actionlint -color
+        run: ~/go/bin/actionlint -color
+
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              document-start: disable
+              line-length: disable
 
   ps-lint:
     name: PSScriptAnalyzer (PowerShell)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run PSScriptAnalyzer
         shell: pwsh
         run: |
@@ -35,22 +42,3 @@ jobs:
             Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -ErrorAction Stop
           }
           Invoke-ScriptAnalyzer -Path ./src -Recurse -Severity Error -EnableExit
-
-  shellcheck:
-    name: ShellCheck (optional)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install shellcheck
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y shellcheck
-      - name: Run ShellCheck if any .sh files
-        run: |
-          set -euo pipefail
-          files=$(git ls-files '*.sh' || true)
-          if [ -n "${files}" ]; then
-            shellcheck ${files}
-          else
-            echo "No .sh files found, skipping."
-          fi

@@ -3,16 +3,22 @@ name: Self Test
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/**'
+      - 'action.yml'
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
-  summary-test:
+  test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
     steps:
       - uses: actions/checkout@v6
-      - name: Self Test
-        uses: ./. 
-
+      - uses: ./.
+        with:
+          minimum-severity: warning
+          working-directory: tests/terraform/basic
