@@ -13,7 +13,7 @@ jobs:
     name: actionlint (workflows)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install actionlint
         run: |
           set -euo pipefail
@@ -26,7 +26,7 @@ jobs:
     name: PSScriptAnalyzer (PowerShell)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Run PSScriptAnalyzer
         shell: pwsh
         run: |
@@ -40,7 +40,7 @@ jobs:
     name: ShellCheck (optional)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install shellcheck
         run: |
           sudo apt-get update -y
